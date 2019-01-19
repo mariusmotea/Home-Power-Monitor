@@ -34,7 +34,7 @@ double calcIrms(int8_t ads, int8_t input_pin )
     }
   }
 
-  
+
   return (val_maxim - val_min) / demultiplier;
 }
 
@@ -49,11 +49,14 @@ void setup(void)
   Serial.println();
   Serial.print("Connecting...");
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(50);
+  if (!wifiManager.autoConnect()) {
+    delay(3000);
+    ESP.reset();
+    delay(5000);
   }
 
   ArduinoOTA.begin();
+  ArduinoOTA.setHostname("powermeter");
 
   // The ADC input range (or gain) can be changed via the following
   // functions, but be careful never to exceed VDD +0.3V max, or to
@@ -77,8 +80,15 @@ void setup(void)
   server.on("/", []() {
     server.send(200, "text/plain", "{\"adc0\": " + (String)calcIrms(1, 0) + ", \"adc1\": " + (String)calcIrms(1, 1) + ", \"adc2\": " + (String)calcIrms(1, 2) + ", \"adc3\": " + (String)calcIrms(1, 3) + ", \"adc4\": " + (String)calcIrms(2, 0) + ", \"adc5\": " + (String)calcIrms(2, 1) + ", \"adc6\": " + (String)calcIrms(2, 2) + ", \"adc7\": " + (String)calcIrms(2, 3) + "}");
   });
+
+  server.on("/reset", []() {
+    ESP.reset();
+  });
+
   server.begin();
 }
+
+
 
 void loop(void)
 {
