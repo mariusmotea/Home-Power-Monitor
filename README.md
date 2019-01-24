@@ -2,7 +2,11 @@
 
 I create this project to monitor the power consumption for every room in my home.
 
+![web-interface](https://github.com/mariusmotea/Home-Power-Monitor/blob/master/web_interface.png?raw=true)
+
+### Circuit
 ![final-product](https://github.com/mariusmotea/Home-Power-Monitor/blob/master/assambled_top.png?raw=true)
+
 
 Futures:
   * small enough to be placed in the fuse block
