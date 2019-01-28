@@ -6,37 +6,17 @@
 #include <WiFiManager.h>
 #include <Wire.h>
 #include <Adafruit_ADS1015.h>
+#include <ArduinoJson.h>
 
-float demultiplier = 6.15;
+#define demultiplier 6.15
+int8_t counter, ads, input_pin;
+float measurements[8];
+int16_t val_min[8], val_max[8], current_val;
 
 Adafruit_ADS1115 ads1(0x48);
 Adafruit_ADS1115 ads2(0x49);
 
 ESP8266WebServer server(80);
-
-double calcIrms(int8_t ads, int8_t input_pin )
-{
-  int16_t val_min = 0, val_maxim = 0, current_val;
-  for (int8_t i = 0; i <= 50; i++) {
-    if (ads == 1) {
-      current_val = ads1.readADC_SingleEnded(input_pin);
-    } else if (ads == 2) {
-      current_val = ads2.readADC_SingleEnded(input_pin);
-    }
-    if (val_maxim == 0 && val_min == 0) {
-      val_maxim = current_val;
-      val_min = current_val;
-    }
-    if (current_val > val_maxim) {
-      val_maxim = current_val;
-    } else if (current_val < val_min) {
-      val_min = current_val;
-    }
-  }
-
-
-  return (val_maxim - val_min) / demultiplier;
-}
 
 void setup(void)
 {
@@ -78,13 +58,24 @@ void setup(void)
   ads1.begin();
   ads2.begin();
   server.on("/", []() {
-    server.send(200, "text/plain", "{\"adc0\": " + (String)calcIrms(1, 0) + ", \"adc1\": " + (String)calcIrms(1, 1) + ", \"adc2\": " + (String)calcIrms(1, 2) + ", \"adc3\": " + (String)calcIrms(1, 3) + ", \"adc4\": " + (String)calcIrms(2, 0) + ", \"adc5\": " + (String)calcIrms(2, 1) + ", \"adc6\": " + (String)calcIrms(2, 2) + ", \"adc7\": " + (String)calcIrms(2, 3) + "}");
+    DynamicJsonBuffer newBuffer;
+    JsonObject& root = newBuffer.createObject();
+    for (int8_t input = 0; input < 8; input++) {
+      if (measurements[input] < 1) {
+        root["in" + (String)(input + 1)] = 0;
+      } else {
+        root["in" + (String)(input + 1)] = (int)measurements[input];
+      }
+    }
+    String output;
+    root.printTo(output);
+    server.send(200, "text/plain", output);
   });
 
   server.on("/reset", []() {
+    server.send(200, "text/plain", "reset");
     ESP.reset();
   });
-
   server.begin();
 }
 
@@ -94,4 +85,36 @@ void loop(void)
 {
   ArduinoOTA.handle();
   server.handleClient();
+  
+  ///begin sensors read
+  if (counter == 100) { // 100 samples per sensor
+     counter = 0;
+     input_pin++;
+     if (input_pin == 4){
+        input_pin = 0;
+        ads++;
+        if (ads == 2) {
+          ads = 0;
+        }
+     }
+  }
+  int8_t input = ads * 4 + input_pin;
+      if (ads == 0) {
+      current_val = ads1.readADC_SingleEnded(input_pin);
+    } else {
+      current_val = ads2.readADC_SingleEnded(input_pin);
+    }
+
+    if (counter == 0) {
+      val_max[input] = current_val;
+      val_min[input] = current_val;
+    }
+    if (current_val > val_max[input]) {
+      val_max[input] = current_val;
+    } else if (current_val < val_min[input]) {
+      val_min[input] = current_val;
+    }
+     measurements[input] = (val_max[input] - val_min[input]) / demultiplier;
+     
+    counter++;
 }
