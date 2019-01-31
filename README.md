@@ -15,7 +15,7 @@ Futures:
   * WiFi manager
   * OTA updates
 
-EasyEDA link https://easyeda.com/marius.motea/Hue-Motion-Sensor
+EasyEDA link https://easyeda.com/marius.motea/power_meter
 
 Components list:
   * 1 x ESP-12
