@@ -4,7 +4,7 @@ I create this project to monitor the power consumption for every room in my home
 
 ![web-interface](https://github.com/mariusmotea/Home-Power-Monitor/blob/master/web_interface.png?raw=true)
 
-### THe Circuit
+### The Circuit
 ![final-product](https://github.com/mariusmotea/Home-Power-Monitor/blob/master/assambled_top.png?raw=true)
 
 
@@ -28,7 +28,7 @@ Components list:
   * 8 x 22ohm smd resistors
   * 3 x 1uF smd capacitor
   
-  Acessing the ip of the device will return a json with power consumption on all 8 inputs
+  Acessing the ip of the device will return a json with power consumption for every input
   
   ### How it works
   
