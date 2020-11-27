@@ -1,19 +1,49 @@
 #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <ESP8266HTTPUpdateServer.h>
+#include <DNSServer.h>            //Local DNS Server used for redirecting all requests to the configuration portal
 #include <ESP8266WebServer.h>
+#include <ESP8266HTTPUpdateServer.h>
 #include <WiFiManager.h>
 #include <Wire.h>
 #include <FS.h>
 #include <Adafruit_ADS1015.h>
 #include <ArduinoJson.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <InfluxDbClient.h>
+#include <InfluxDbCloud.h>
 
-//#define demultiplier 6.15
-#define demultiplier 2.43
-int8_t counter, ads, input_pin;
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define demultiplier 6.15
+#define samples 500
+int8_t ads, input_pin, current_input;
+int counter;
 float measurements[8];
 int16_t val_min[8], val_max[8], current_val;
+
+#define INFLUXDB_URL "https://eu-central-1-1.aws.cloud2.influxdata.com"
+// InfluxDB v2 server or cloud API authentication token (Use: InfluxDB UI -> Data -> Tokens -> <select token>)
+#define INFLUXDB_TOKEN "ayIsLDXI63f8bPfVqVJyOV5P6exxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxfbNWXJJxjA3OTHVS4YbuvHow=="
+// InfluxDB v2 organization id (Use: InfluxDB UI -> User -> About -> Common Ids )
+#define INFLUXDB_ORG "marius.motea@example.com"
+// InfluxDB v2 bucket name (Use: InfluxDB UI ->  Data -> Buckets)
+#define INFLUXDB_BUCKET "marius.motea's Bucket"
+
+// Set timezone string according to https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html
+// Examples:
+//  Pacific Time: "PST8PDT"
+//  Eastern: "EST5EDT"
+//  Japanesse: "JST-9"
+//  Central Europe: "CET-1CEST,M3.5.0,M10.5.0/3"
+#define TZ_INFO "CET-1CEST,M3.5.0,M10.5.0/3"
+
+// InfluxDB client instance with preconfigured InfluxCloud certificate
+InfluxDBClient client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
 
 File fsUploadFile;
 
@@ -73,10 +103,33 @@ void handleFileUpload() { // upload a new file to the SPIFFS
   }
 }
 
+
+
+
+void InfluxDB_Push (int8_t input) {
+  //Data point
+  Point sensor("ADS1115");
+  sensor.addTag("device", "Power");
+  sensor.addField("fuse" + String(input + 1), measurements[input]);
+  client.writePoint(sensor);
+}
+
 void setup(void)
 {
+  //
   //Serial.begin(115200);
-  
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); // Don't proceed, loop forever
+  }
+
+  // Show initial display buffer contents on the screen --
+  // the library initializes this with an Adafruit splash screen.
+  display.display();
+  delay(2000); // Pause for 2 seconds
+
   SPIFFS.begin();
   {
     Dir dir = SPIFFS.openDir("/");
@@ -87,20 +140,34 @@ void setup(void)
     }
     //Serial.printf("\n");
   }
+  display.clearDisplay();
+  display.setTextSize(1);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.cp437(true);         // Use full 256 char 'Code Page 437' font
+  display.setCursor(5, 0);
+  display.print(F("Searching for Wi-Fi..."));
+  display.display();
+
+  WiFi.mode(WIFI_STA);
 
   WiFi.hostname("powermeter");
   WiFiManager wifiManager;
-  wifiManager.setConfigPortalTimeout(120);
+  wifiManager.setConfigPortalTimeout(40);
   wifiManager.autoConnect("powermeter");
 
-  //Serial.println();
-  //Serial.println();
-  //Serial.print("Connecting...");
-  if (!wifiManager.autoConnect()) {
-      delay(3000);
-      ESP.reset();
-      delay(3000);
+  if (WiFi.status() != WL_CONNECTED) {
+    display.print(F("Connection Fail"));
+    display.display();
+    delay(1000);
+    ESP.reset();
+  } else {
+    display.clearDisplay();
+    display.print(F("Connected..."));
   }
+
+  display.display();
+  delay(1000);
+  display.clearDisplay();
 
   httpUpdateServer.setup(&server);
 
@@ -169,9 +236,9 @@ void setup(void)
 void loop(void)
 {
   server.handleClient();
-
   ///begin sensors read
-  if (counter == 100) { // 100 samples per sensor
+  if (counter == samples) { // nr of samples per sensor
+    //display_values(input);
     counter = 0;
     input_pin++;
     if (input_pin == 4) {
@@ -181,8 +248,9 @@ void loop(void)
         ads = 0;
       }
     }
+    current_input = ads * 4 + input_pin;
+    display_mesurement(current_input);
   }
-  int8_t input = ads * 4 + input_pin;
   if (ads == 0) {
     current_val = ads1.readADC_SingleEnded(input_pin);
   } else {
@@ -190,15 +258,74 @@ void loop(void)
   }
 
   if (counter == 0) {
-    val_max[input] = current_val;
-    val_min[input] = current_val;
+    val_max[current_input] = current_val;
+    val_min[current_input] = current_val;
   }
-  if (current_val > val_max[input]) {
-    val_max[input] = current_val;
-  } else if (current_val < val_min[input]) {
-    val_min[input] = current_val;
+  if (current_val > val_max[current_input]) {
+    val_max[current_input] = current_val;
+  } else if (current_val < val_min[current_input]) {
+    val_min[current_input] = current_val;
   }
-  measurements[input] = (val_max[input] - val_min[input]) / demultiplier;
+  if (counter == samples - 1) {
+    measurements[current_input] = (val_max[current_input] - val_min[current_input]) / demultiplier;
+    display_values(current_input);
+    InfluxDB_Push(current_input);
+  }
 
   counter++;
+}
+
+void display_mesurement (int8_t input) {
+    if (input < 4) {
+    display.fillRect(30, input * 10, 30, 10, 0);
+    display.setCursor(30, input * 10);
+    display.print("read");
+  } else {
+    display.fillRect(94, (input - 4) * 10, 30, 10, 0);
+    display.setCursor(94, (input - 4) * 10);
+    display.print("read");
+  }
+  display.display();
+}
+
+
+void display_values(int8_t input) {
+  //display.clearDisplay();
+  display.setTextSize(1);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.cp437(true);         // Use full 256 char 'Code Page 437' font
+
+  int total = 0;
+  if (input < 4) {
+    display.fillRect(20, input * 10, 44, 10, 0);
+    display.setCursor(0, input * 10);
+  } else {
+    display.fillRect(80, (input - 4) * 10, 44, 10, 0);
+    display.setCursor(64, (input - 4) * 10);
+  }
+  if (measurements[input] < 1) {
+    display.println("In" + (String)(input + 1) + ":   0W");
+  } else if (measurements[input] < 10) {
+    display.println("In" + (String)(input + 1) + ":   " + (String)(int)measurements[input] + "W");
+  } else if (measurements[input] < 100) {
+    display.println("In" + (String)(input + 1) + ":  " + (String)(int)measurements[input] + "W");
+  } else {
+    display.println("In" + (String)(input + 1) + ": " + (String)(int)measurements[input] + "W");
+  }
+
+  for (int8_t fuse = 0; fuse < 8; fuse++) {
+    total += measurements[fuse];
+  }
+  display.fillRect(64, 55, 64, 11, 0);
+  display.setCursor(0, 55);
+  if (total < 10) {
+    display.println(" TOTAL:           " + (String)(int)total + "W");
+  } else if (total < 100) {
+    display.println(" TOTAL:          " + (String)(int)total + "W");
+  } else {
+    display.println(" TOTAL:         " + (String)(int)total + "W");
+  }
+
+
+  display.display();
 }
