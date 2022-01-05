@@ -1,11 +1,12 @@
 #include <ESP8266WiFi.h>
-#include <DNSServer.h>            //Local DNS Server used for redirecting all requests to the configuration portal
-#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
 #include <ESP8266HTTPUpdateServer.h>
+#include <ESP8266WebServer.h>
 #include <WiFiManager.h>
 #include <Wire.h>
 #include <FS.h>
-#include <Adafruit_ADS1015.h>
+#include <Adafruit_ADS1X15.h>
 #include <ArduinoJson.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -19,7 +20,7 @@
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define demultiplier 6.15
+#define demultiplier 5.812
 #define samples 500
 int8_t ads, input_pin, current_input;
 int counter;
@@ -28,7 +29,7 @@ int16_t val_min[8], val_max[8], current_val;
 
 #define INFLUXDB_URL "https://eu-central-1-1.aws.cloud2.influxdata.com"
 // InfluxDB v2 server or cloud API authentication token (Use: InfluxDB UI -> Data -> Tokens -> <select token>)
-#define INFLUXDB_TOKEN "ayIsLDXI63f8bPfVqVJyOV5P6exxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxfbNWXJJxjA3OTHVS4YbuvHow=="
+#define INFLUXDB_TOKEN "ayIsLDXI63f8bPfVqVJyOV5xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxbNWXJJxjA3OTHVS4YbuvHow=="
 // InfluxDB v2 organization id (Use: InfluxDB UI -> User -> About -> Common Ids )
 #define INFLUXDB_ORG "marius.motea@example.com"
 // InfluxDB v2 bucket name (Use: InfluxDB UI ->  Data -> Buckets)
@@ -47,9 +48,9 @@ InfluxDBClient client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKE
 
 File fsUploadFile;
 
-Adafruit_ADS1115 ads1(0x48);
-Adafruit_ADS1115 ads2(0x49);
 
+Adafruit_ADS1115 ads1;
+Adafruit_ADS1115 ads2;
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdateServer;
 
@@ -116,6 +117,7 @@ void InfluxDB_Push (int8_t input) {
 
 void setup(void)
 {
+  client.setInsecure(); // SSL validation require to update and recompile the influxdb library yearly
   //
   //Serial.begin(115200);
 
@@ -188,8 +190,8 @@ void setup(void)
   ads1.setGain(GAIN_FOUR);
   ads2.setGain(GAIN_FOUR);
 
-  ads1.begin();
-  ads2.begin();
+  ads1.begin(0x48);
+  ads2.begin(0x49);
   server.on("/json", []() {
     DynamicJsonDocument root(1024);
     for (int8_t input = 0; input < 8; input++) {

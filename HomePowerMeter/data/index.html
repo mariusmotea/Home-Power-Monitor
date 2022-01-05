@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+   <head>
+       <meta charset="utf-8">
+   </head>
+   <body style="height: 100%; margin: 0">
+       <div id="container" style="height: 100%"></div>
+       <script type="text/javascript" src="charts.js"></script>
+       <script type="text/javascript">
+var dom = document.getElementById("container");
+var myChart = echarts.init(dom);
+option = null;
+
+var timeData = [];
+
+
+option = {
+    title: {
+        text: 'Powermeter',
+        subtext: 'Sensors data per fuse',
+        x: 'center'
+    },
+    tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+            animation: false
+        }
+    },
+    legend: {
+        data:['senz1','senz2','senz3','senz4','senz5','senz6','senz7','senz8'],
+        x: 'left'
+    },
+    toolbox: {
+        feature: {
+            dataZoom: {
+                yAxisIndex: 'none'
+            },
+            restore: {},
+            saveAsImage: {}
+        }
+    },
+    axisPointer: {
+        link: {xAxisIndex: 'all'}
+    },
+/*    dataZoom: [
+        {
+            show: true,
+            realtime: true,
+            start: 70,
+            end: 1000,
+            xAxisIndex: [0, 1]
+        },
+        {
+            type: 'inside',
+            realtime: true,
+            start: 70,
+            end: 100,
+            xAxisIndex: [0, 1]
+        }
+    ], */
+    grid: [{
+        left: 50,
+        right: 50,
+        height: '35%'
+    }],
+    xAxis : [
+        {
+            type : 'category',
+            boundaryGap : false,
+            axisLine: {onZero: true},
+            data: timeData
+        }
+    ],
+    yAxis : [
+        {
+            name : 'senz1(W)',
+            type : 'value',
+            //max : 500
+        }
+    ],
+    series : [
+
+{
+   name:'senz1',
+   type:'line',
+   smooth: true,
+   symbolSize: 8,
+   hoverAnimation: false,
+   data:[],
+  markPoint : {
+      data : [
+          {type : 'max', name: 'Max'},
+          {type : 'min', name: 'Min'}
+      ]
+  },
+  markLine : {
+      data : [
+          {type : 'average', name: 'Average'}
+      ]
+  }
+},
+{
+   name:'senz2',
+   type:'line',
+   smooth: true,
+   symbolSize: 8,
+   hoverAnimation: false,
+   data:[],
+  markPoint : {
+      data : [
+          {type : 'max', name: 'Max'},
+          {type : 'min', name: 'Min'}
+      ]
+  },
+  markLine : {
+      data : [
+          {type : 'average', name: 'Average'}
+      ]
+  }
+},
+{
+   name:'senz3',
+   type:'line',
+   smooth: true,
+   symbolSize: 8,
+   hoverAnimation: false,
+   data:[],
+  markPoint : {
+      data : [
+          {type : 'max', name: 'Max'},
+          {type : 'min', name: 'Min'}
+      ]
+  },
+  markLine : {
+      data : [
+          {type : 'average', name: 'Average'}
+      ]
+  }
+},
+{
+   name:'senz4',
+   type:'line',
+   smooth: true,
+   symbolSize: 8,
+   hoverAnimation: false,
+   data:[],
+  markPoint : {
+      data : [
+          {type : 'max', name: 'Max'},
+          {type : 'min', name: 'Min'}
+      ]
+  },
+  markLine : {
+      data : [
+          {type : 'average', name: 'Average'}
+      ]
+  }
+},
+{
+   name:'senz5',
+   type:'line',
+   smooth: true,
+   symbolSize: 8,
+   hoverAnimation: false,
+   data:[],
+  markPoint : {
+      data : [
+          {type : 'max', name: 'Max'},
+          {type : 'min', name: 'Min'}
+      ]
+  },
+  markLine : {
+      data : [
+          {type : 'average', name: 'Average'}
+      ]
+  }
+},
+{
+   name:'senz6',
+   type:'line',
+   smooth: true,
+   symbolSize: 8,
+   hoverAnimation: false,
+   data:[],
+  markPoint : {
+      data : [
+          {type : 'max', name: 'Max'},
+          {type : 'min', name: 'Min'}
+      ]
+  },
+  markLine : {
+      data : [
+          {type : 'average', name: 'Average'}
+      ]
+  }
+},
+{
+   name:'senz7',
+   type:'line',
+   smooth: true,
+   symbolSize: 8,
+   hoverAnimation: false,
+   data:[],
+  markPoint : {
+      data : [
+          {type : 'max', name: 'Max'},
+          {type : 'min', name: 'Min'}
+      ]
+  },
+  markLine : {
+      data : [
+          {type : 'average', name: 'Average'}
+      ]
+  }
+},
+
+        {
+            name:'senz8',
+            type:'line',
+            smooth: true,
+            symbolSize: 8,
+            hoverAnimation: false,
+            data: [],
+            markPoint : {
+                data : [
+                    {type : 'max', name: 'Max'},
+                    {type : 'min', name: 'Min'}
+                ]
+            },
+            markLine : {
+                data : [
+                    {type : 'average', name: 'Average'}
+                ]
+            }
+        }
+    ]
+};
+if (option && typeof option === "object") {
+    myChart.setOption(option, true);
+}
+
+setInterval(function () {
+  axisData = (new Date()).toLocaleTimeString().replace(/^\D*/,'');
+
+  var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() {
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+            appendData(JSON.parse(xmlHttp.responseText));
+    }
+    xmlHttp.open("GET", '/json', true); // true for asynchronous
+    xmlHttp.send(null);
+
+  //option.xAxis[0].data.shift();
+  option.xAxis[0].data.push(axisData);
+
+  myChart.setOption(option);
+},2000);
+
+function appendData(data) {
+  var data0 = option.series[0].data;
+  var data1 = option.series[1].data;
+  var data2 = option.series[2].data;
+  var data3 = option.series[3].data;
+  var data4 = option.series[4].data;
+  var data5 = option.series[5].data;
+  var data6 = option.series[6].data;
+  var data7 = option.series[7].data;
+
+  data0.push(data["in1"]);
+  data1.push(data["in2"]);
+  data2.push(data["in3"]);
+  data3.push(data["in4"]);
+  data4.push(data["in5"]);
+  data5.push(data["in6"]);
+  data6.push(data["in7"]);
+  data7.push(data["in8"]);
+}
+       </script>
+   </body>
+</html>

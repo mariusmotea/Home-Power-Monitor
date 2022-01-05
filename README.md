@@ -4,6 +4,58 @@ I create this project to monitor the power consumption for every room in my home
 
 ![web-interface](https://github.com/mariusmotea/Home-Power-Monitor/blob/master/web_interface.png?raw=true)
 
+
+### Home Assistant integration
+
+```
+  - platform: rest
+    resource: http://192.168.xx.xx/json
+    name: power_sensors
+    json_attributes:
+      - in1
+      - in2
+      - in3
+      - in4
+      - in5
+      - in6
+      - in7
+      - in8
+    value_template: "OK"
+    scan_interval: 60
+  - platform: template
+    sensors:
+      power_fuse1:
+        value_template: "{{ state_attr('sensor.power_sensors', 'in1')}}"
+        unit_of_measurement: "W"
+      power_fuse2:
+        value_template: "{{ state_attr('sensor.power_sensors', 'in2')}}"
+        unit_of_measurement: "W"
+      power_fuse3:
+        value_template: "{{ state_attr('sensor.power_sensors', 'in3')}}"
+        unit_of_measurement: "W"
+      power_fuse4:
+        value_template: "{{ state_attr('sensor.power_sensors', 'in4')}}"
+        unit_of_measurement: "W"
+      power_fuse5:
+        value_template: "{{ state_attr('sensor.power_sensors', 'in5')}}"
+        unit_of_measurement: "W"
+      power_fuse6:
+        value_template: "{{ state_attr('sensor.power_sensors', 'in6')}}"
+        unit_of_measurement: "W"
+      power_fuse7:
+        value_template: "{{ state_attr('sensor.power_sensors', 'in7')}}"
+        unit_of_measurement: "W"
+      power_fuse8:
+        value_template: "{{ state_attr('sensor.power_sensors', 'in8')}}"
+        unit_of_measurement: "W"
+
+  - platform: integration
+    source: sensor.power_fuse1
+    name: fuse1_used_energy
+    unit_prefix: k
+    round: 2
+```
+
 ### The Circuit
 ![final-product](https://github.com/mariusmotea/Home-Power-Monitor/blob/master/assambled_top.png?raw=true)
 
