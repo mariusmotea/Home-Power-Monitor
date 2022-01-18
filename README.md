@@ -82,7 +82,22 @@ Components list:
   
   Acessing the ip of the device will return a json with power consumption for every input
   
-  ### How it works
+  ### 0.9" OLED display
+  The code was updated to support the popular OLED display on I2C bus. Since the update was made after the PCB development you need to solder the I2C data lines manually. The best pads for this are the bus pull up resistors R3 and R4. For the power connection you can use the pads made to flash the esp8266 controller.
+  
+  ### InfluxDB Cloud
+  The most easy way to store the readings of this device is to use a free InfluxDB cloud account. The free account will store the information for the last 30 days. SSL validation was disabled for InfluxDB servers since the CA certificate need to be manually updated about every 9 months and this require library update and firmware compilation. The following credentials need to be updated in the sketch:
+  ```
+  #define INFLUXDB_URL "https://eu-central-1-1.aws.cloud2.influxdata.com"
+// InfluxDB v2 server or cloud API authentication token (Use: InfluxDB UI -> Data -> Tokens -> <select token>)
+#define INFLUXDB_TOKEN "ayIsLDXI63f8bPfVqVJyOV5xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxbNWXJJxjA3OTHVS4YbuvHow=="
+// InfluxDB v2 organization id (Use: InfluxDB UI -> User -> About -> Common Ids )
+#define INFLUXDB_ORG "marius.motea@example.com"
+// InfluxDB v2 bucket name (Use: InfluxDB UI ->  Data -> Buckets)
+#define INFLUXDB_BUCKET "marius.motea's Bucket"
+```
+  
+  ### Web app with PHP/MySQL
   
  The device return an json on every http get request with the number of watts for every input (circuit). To put the data in the database you need to set a cron that run at a number of minutes (depending on requirements) and insert the values from json in the database. Credentials and device ip must be set first in config.php. On web interface access there is a SELECT in the database for the records in the last 30 days. Echarts javascript plugin is used to render the values in graphs. I upload my own setup were i use input8 for total consumption and this is displayed in a second graph.
  
