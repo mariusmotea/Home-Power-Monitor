@@ -85,6 +85,8 @@ Components list:
   ### 0.9" OLED display
   The code was updated to support the popular OLED display on I2C bus. Since the update was made after the PCB development you need to solder the I2C data lines manually. The best pads for this are the bus pull up resistors R3 and R4. For the power connection you can use the pads made to flash the esp8266 controller.
   
+  ![display](https://github.com/mariusmotea/Home-Power-Monitor/raw/master/OLED_display.jpg)
+  
   ### InfluxDB Cloud
   The most easy way to store the readings of this device is to use a free InfluxDB cloud account. The free account will store the information for the last 30 days. SSL validation was disabled for InfluxDB servers since the CA certificate need to be manually updated about every 9 months and this require library update and firmware compilation. The following credentials need to be updated in the sketch:
   ```
