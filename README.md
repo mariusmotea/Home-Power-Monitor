@@ -74,7 +74,7 @@ Components list:
   * 8 x SCT013 non invasive current sensors 30A
   * 8 x PJ-320A Phone Jack 3.5 mm
   * 2 x ADS1115
-  * 1 x TPS-03 3.3v mini power supply 
+  * 1 x HLK-PM03 3.3v mini power supply 
   * 1 x 2 pin header
   * 4 x 10K smd resistors
   * 8 x 22ohm smd resistors
